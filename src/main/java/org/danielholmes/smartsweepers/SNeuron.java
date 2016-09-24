@@ -9,6 +9,7 @@ public class SNeuron {
 
 
     public SNeuron(int NumInputs) {
+        m_vecWeight = new Vector<>();
         m_NumInputs = NumInputs + 1;
         //we need an additional weight for the bias hence the +1
         for (int i=0; i<NumInputs+1; ++i)

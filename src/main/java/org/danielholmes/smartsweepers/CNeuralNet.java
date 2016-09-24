@@ -11,10 +11,11 @@ public class CNeuralNet {
 
     public CNeuralNet()
     {
-        m_NumInputs = CParams.getParam("iNumInputs");
-        m_NumOutputs =	CParams.getParam("iNumOutputs");
-        m_NumHiddenLayers =	CParams.getParam("iNumHidden");
-        m_NeuronsPerHiddenLyr =	CParams.getParam("iNeuronsPerHiddenLayer");
+        m_NumInputs = CParams.iNumInputs;
+        m_NumOutputs =	CParams.iNumOutputs;
+        m_NumHiddenLayers =	CParams.iNumHidden;
+        m_NeuronsPerHiddenLyr =	CParams.iNeuronsPerHiddenLayer;
+        m_vecLayers = new Vector<>();
 
         CreateNet();
     }
@@ -167,12 +168,12 @@ public class CNeuralNet {
 
                 //add in the bias
                 netinput += m_vecLayers.get(i).m_vecNeurons.get(j).m_vecWeight.get(NumInputs-1) *
-                        CParams.getParam("dBias");
+                        CParams.dBias;
 
                 //we can store the outputs from each layer as we generate them.
                 //The combined activation is first filtered through the sigmoid
                 //function
-                outputs.add(Sigmoid(netinput, CParams.getParam("dActivationResponse")));
+                outputs.add(Sigmoid(netinput, CParams.dActivationResponse));
 
                 cWeight = 0;
             }
