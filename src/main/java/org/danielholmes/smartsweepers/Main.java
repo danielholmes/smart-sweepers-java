@@ -1,6 +1,11 @@
 package org.danielholmes.smartsweepers;
 
+import javafx.scene.input.KeyCode;
+
 import javax.swing.*;
+import java.awt.*;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -12,66 +17,73 @@ public class Main {
     private static String szWindowClassName = "sweeper";
 
     //The controller class for this simulation
-    private static CController g_pController = null;
-
-    //create an instance of the parameter class.
-    private static CParams g_Params;
+    private static CController g_pController;
 
     public static void main(String[] args)
     {
-        //Schedule a job for the event-dispatching thread:
-        //creating and showing this application's GUI.
-        javax.swing.SwingUtilities.invokeLater(new Runnable() {
-            public void run() {
-                createAndShowGUI();
-            }
-        });
-    }
-
-    private static void createAndShowGUI() {
         loadInConfigParameters();
+
+        g_pController = new CController(/*frame*/);
+
+        JPanel mainPanel = new JPanel() {
+            @Override
+            public void paint(Graphics g) {
+                super.paint(g);
+
+                g_pController.Render((Graphics2D) g);
+            }
+        };
+        mainPanel.setSize(CParams.WindowWidth, CParams.WindowHeight);
 
         JFrame frame = new JFrame(szApplicationName);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setSize(CParams.WindowWidth, CParams.WindowHeight);
+        frame.getContentPane().add(mainPanel);
+        frame.addKeyListener(new KeyListener() {
+            @Override
+            public void keyReleased(KeyEvent e) { }
 
-        JLabel label = new JLabel("Hello World");
-        frame.getContentPane().add(label);
+            @Override
+            public void keyTyped(KeyEvent e) { }
 
-        frame.pack();
+            @Override
+            public void keyPressed(KeyEvent e) {
+                if (e.getKeyChar() == 'f') {
+                    g_pController.FastRenderToggle();
+                } else if (e.getKeyChar() == 'r') {
+                    g_pController = new CController();
+                } else if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
+                    System.exit(0);
+                }
+            }
+        });
         frame.setVisible(true);
-
-        CController g_pController = new CController(/*frame*/);
 
         long millisPerFrame = 1000 / CParams.iFramesPerSecond;
 
-        Timer timer = new Timer();
-        timer.schedule(
-                new TimerTask() {
-                    @Override
-                    public void run() {
-                        System.out.println("Run");
-                    }
-                },
-                millisPerFrame,
-                millisPerFrame
-        );
-        //CTimer timer(CParams.iFramesPerSecond);
-        //timer.Start();
-
-        /*while (true)
+        while (true)
         {
-            if (timer.ReadyForNextFrame() || g_pController.FastRender())
+            long frameStart = System.currentTimeMillis();
+            if (!g_pController.Update())
             {
-                if (!g_pController.Update())
-                {
-                    break;
-                }
+                // Done
+                break;
+            }
+            mainPanel.repaint();
 
-                // TODO: Call repaint() and possibly g_pController->Render(hdcBackBuffer);
+            if (!g_pController.FastRender())
+            {
+                long timeToNextFrameStart = (frameStart + millisPerFrame) - System.currentTimeMillis();
+                if (timeToNextFrameStart > 0) {
+                    try {
+                        Thread.sleep(timeToNextFrameStart);
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
             }
 
-        }*/
+        }
     }
 
     private static void loadInConfigParameters() {

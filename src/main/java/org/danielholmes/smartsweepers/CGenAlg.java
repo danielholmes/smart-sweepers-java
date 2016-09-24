@@ -77,8 +77,8 @@ public class CGenAlg {
         //or if parents are the same
         if ( (RandFloat() > m_dCrossoverRate) || (mum == dad))
         {
-            baby1 = mum;
-            baby2 = dad;
+            baby1.addAll(mum);
+            baby2.addAll(dad);
 
             return;
         }
@@ -118,7 +118,7 @@ public class CGenAlg {
 
     private SGenome GetChromoRoulette() {
         //generate a random number between 0 & total fitness count
-        double Slice = (double)(RandFloat() * m_dTotalFitness);
+        double Slice = RandFloat() * m_dTotalFitness;
 
         //this will be set to the chosen chromosome
         SGenome TheChosenOne = null;
@@ -138,18 +138,69 @@ public class CGenAlg {
 
                 break;
             }
-
         }
 
         return TheChosenOne;
     }
 
-    private void GrabNBest(int NBest, int NumCopies, Vector<SGenome> vecPop) { }
-
-    private void CalculateBestWorstAvTot() {
+    //	This works like an advanced form of elitism by inserting NumCopies
+    //  copies of the NBest most fittest genomes into a population vector
+    private void GrabNBest(int NBest, int NumCopies, Vector<SGenome> vecPop) {
+        //add the required amount of copies of the n most fittest 
+        //to the supplied vector
+        while (NBest-- > 0)
+        {
+            for (int i=0; i<NumCopies; ++i)
+            {
+                vecPop.add(m_vecPop.get((m_iPopSize - 1) - NBest));
+            }
+        }
     }
 
-    private void Reset() {
+    //	calculates the fittest and weakest genome and the average/total 
+    //	fitness scores
+    private void CalculateBestWorstAvTot()
+    {
+        m_dTotalFitness = 0;
+
+        double HighestSoFar = 0;
+        double LowestSoFar  = 9999999;
+
+        for (int i=0; i<m_iPopSize; ++i)
+        {
+            //update fittest if necessary
+            if (m_vecPop.get(i).dFitness > HighestSoFar)
+            {
+                HighestSoFar	 = m_vecPop.get(i).dFitness;
+
+                m_iFittestGenome = i;
+
+                m_dBestFitness	 = HighestSoFar;
+            }
+
+            //update worst if necessary
+            if (m_vecPop.get(i).dFitness < LowestSoFar)
+            {
+                LowestSoFar = m_vecPop.get(i).dFitness;
+
+                m_dWorstFitness = LowestSoFar;
+            }
+
+            m_dTotalFitness	+= m_vecPop.get(i).dFitness;
+
+
+        }//next chromo
+
+        m_dAverageFitness = m_dTotalFitness / m_iPopSize;
+    }
+
+    //	resets all the relevant variables ready for a new generation
+    private void Reset()
+    {
+        m_dTotalFitness		= 0;
+        m_dBestFitness		= 0;
+        m_dWorstFitness		= 9999999;
+        m_dAverageFitness	= 0;
     }
 
     //this runs the GA for one generation.
@@ -167,7 +218,7 @@ public class CGenAlg {
         CalculateBestWorstAvTot();
 
         //create a temporary vector to store new chromosones
-        Vector<SGenome> vecNewPop = new Vector<SGenome>();
+        Vector<SGenome> vecNewPop = new Vector<>();
 
         //Now to add a little elitism we shall add in some copies of the
         //fittest genomes. Make sure we add an EVEN number or the roulette
@@ -177,19 +228,18 @@ public class CGenAlg {
             GrabNBest(CParams.iNumElite, CParams.iNumCopiesElite, vecNewPop);
         }
 
-
         //now we enter the GA loop
 
         //repeat until a new population is generated
         while (vecNewPop.size() < m_iPopSize)
         {
-            //grab two chromosones
+            //grab two chromosomes
             SGenome mum = GetChromoRoulette();
             SGenome dad = GetChromoRoulette();
 
             //create some offspring via crossover
-            Vector<Double> baby1 = new Vector<Double>();
-            Vector<Double> baby2 = new Vector<Double>();
+            Vector<Double> baby1 = new Vector<>();
+            Vector<Double> baby2 = new Vector<>();
 
             Crossover(mum.vecWeights, dad.vecWeights, baby1, baby2);
 

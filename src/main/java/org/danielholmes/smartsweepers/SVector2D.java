@@ -4,6 +4,10 @@ public class SVector2D {
     public double x;
     public double y;
 
+    public SVector2D() {
+        this(0.0, 0.0);
+    }
+
     public SVector2D(double a, double b) {
         x = a;
         y = b;
@@ -17,7 +21,7 @@ public class SVector2D {
 
     public SVector2D plus(SVector2D rhs)
     {
-        return new SVector2D(x + rhs.x, y * rhs.y);
+        return new SVector2D(x + rhs.x, y + rhs.y);
     }
 
     public SVector2D minus(double rhs)

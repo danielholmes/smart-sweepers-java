@@ -40,6 +40,7 @@ public class CMinesweeper {
         m_dFitness = 0;
         m_dScale = CParams.iSweeperScale;
         m_iClosestMine = 0;
+        m_vLookAt = new SVector2D();
 
         //create a random start position
         m_vPosition = new SVector2D((RandFloat() * CParams.WindowWidth),
@@ -59,8 +60,6 @@ public class CMinesweeper {
 
         //and the rotation
         m_dRotation = RandFloat()*CParams.dTwoPi;
-
-        return;
     }
 
     //	sets up a translation matrix for the sweeper according to its
@@ -99,7 +98,7 @@ public class CMinesweeper {
     {
 
         //this will store all the inputs for the NN
-        Vector<Double> inputs = new Vector<Double>();
+        Vector<Double> inputs = new Vector<>();
 
         //get vector to closest mine
         SVector2D vClosestMine = GetClosestMine(mines);
@@ -158,9 +157,9 @@ public class CMinesweeper {
     //	returns the vector from the sweeper to the closest mine
     private SVector2D GetClosestMine(Vector<SVector2D> mines)
     {
-        double			closest_so_far = 99999;
+        double closest_so_far = 99999;
 
-        SVector2D		vClosestObject = new SVector2D(0, 0);
+        SVector2D vClosestObject = new SVector2D(0, 0);
 
         //cycle through mines to find closest
         for (int i=0; i<mines.size(); i++)
@@ -199,6 +198,8 @@ public class CMinesweeper {
     public void IncrementFitness(){++m_dFitness;}
 
     public double Fitness() {return m_dFitness;}
+
+    public double Rotation() {return m_dRotation;}
 
     public void PutWeights(Vector<Double> w){m_ItsBrain.PutWeights(w);}
 

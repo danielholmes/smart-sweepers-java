@@ -1,39 +1,12 @@
 package org.danielholmes.smartsweepers;
 
+import java.awt.*;
+import java.awt.geom.AffineTransform;
 import java.util.Vector;
 
 import static org.danielholmes.smartsweepers.Utils.RandFloat;
 
 public class CController {
-
-
-    /*//these hold the geometry of the sweepers and the mines
-    private static int NumSweeperVerts = 16;
-    const SPoint sweeper[NumSweeperVerts] = {SPoint(-1, -1),
-            SPoint(-1, 1),
-            SPoint(-0.5, 1),
-            SPoint(-0.5, -1),
-
-            SPoint(0.5, -1),
-            SPoint(1, -1),
-            SPoint(1, 1),
-            SPoint(0.5, 1),
-
-            SPoint(-0.5, -0.5),
-            SPoint(0.5, -0.5),
-
-            SPoint(-0.5, 0.5),
-            SPoint(-0.25, 0.5),
-            SPoint(-0.25, 1.75),
-            SPoint(0.25, 1.75),
-            SPoint(0.25, 0.5),
-            SPoint(0.5, 0.5)};
-
-    const int NumMineVerts = 4;
-    const SPoint mine[NumMineVerts] = {SPoint(-1, -1),
-            SPoint(-1, 1),
-            SPoint(1, 1),
-            SPoint(1, -1)};*/
 
     //storage for the population of genomes
     private Vector<SGenome> m_vecThePopulation;
@@ -52,12 +25,6 @@ public class CController {
     private int m_NumMines;
 
     private int m_NumWeightsInNN;
-
-    //vertex buffer for the sweeper shape's vertices
-    private Vector<SPoint> m_SweeperVB;
-
-    //vertex buffer for the mine shape's vertices
-    private Vector<SPoint> m_MineVB;
 
     //stores the average fitness per generation for use
     //in graphing.
@@ -95,6 +62,9 @@ public class CController {
         cxClient = CParams.WindowWidth;
         cyClient = CParams.WindowHeight;
 
+        m_vecAvFitness = new Vector<>();
+        m_vecBestFitness = new Vector<>();
+
         //let's create the mine sweepers
         m_vecSweepers = new Vector<>();
         for (int i=0; i<m_NumSweepers; ++i)
@@ -115,9 +85,9 @@ public class CController {
         //Get the weights from the GA and insert into the sweepers brains
         m_vecThePopulation = m_pGA.GetChromos();
 
-        for (int i=0; i<m_NumSweepers; i++)
-
+        for (int i=0; i<m_NumSweepers; i++) {
             m_vecSweepers.get(i).PutWeights(m_vecThePopulation.get(i).vecWeights);
+        }
 
         //initialize mines in random positions within the application window
         m_vecMines = new Vector<>();
@@ -143,26 +113,6 @@ public class CController {
     public boolean FastRender() {return m_bFastRender;}
     public void FastRender(boolean arg){m_bFastRender = arg;}
     public void FastRenderToggle()  {m_bFastRender = !m_bFastRender;}
-
-
-    //	sets up the translation matrices for the mines and applies the
-    //	world transform to each vertex in the vertex buffer passed to this
-    //	method.
-    /*void CController::WorldTransform(vector<SPoint> &VBuffer, SVector2D vPos)
-    {
-        //create the world transformation matrix
-        C2DMatrix matTransform;
-
-        //scale
-        matTransform.Scale(CParams.dMineScale, CParams.dMineScale);
-
-        //translate
-        matTransform.Translate(vPos.x, vPos.y);
-
-        //transform the ships vertices
-        matTransform.TransformSPoints(VBuffer);
-    }*/
-
 
     //	This is the main workhorse. The entire simulation is controlled from here.
     //	The comments should explain what is going on adequately.
@@ -231,7 +181,6 @@ public class CController {
             for (int i=0; i<m_NumSweepers; ++i)
             {
                 m_vecSweepers.get(i).PutWeights(m_vecThePopulation.get(i).vecWeights);
-
                 m_vecSweepers.get(i).Reset();
             }
         }
@@ -239,142 +188,127 @@ public class CController {
         return true;
     }
 
-    /*
-    public void Render(HDC surface)
+    public void Render(Graphics2D g)
     {
-        //render the stats
-        string s = "Generation:          " + itos(m_iGenerations);
-        TextOut(surface, 5, 0, s.c_str(), s.size());
+        g.setColor(Color.BLACK);
+        g.drawString("Generation: " + m_iGenerations, 5, 15);
 
         //do not render if running at accelerated speed
         if (!m_bFastRender)
         {
-            //keep a record of the old pen
-            m_OldPen = (HPEN)SelectObject(surface, m_GreenPen);
-
             //render the mines
             for (int i=0; i<m_NumMines; ++i)
             {
-                //grab the vertices for the mine shape
-                vector<SPoint> mineVB = m_MineVB;
+                m_vecMines.get(i);
 
-                WorldTransform(mineVB, m_vecMines.get(i));
-
-                //draw the mines
-                MoveToEx(surface, (int)mineVB[0].x, (int)mineVB[0].y, NULL);
-
-                for (int vert=1; vert<mineVB.size(); ++vert)
-                {
-                    LineTo(surface, (int)mineVB[vert].x, (int)mineVB[vert].y);
-                }
-
-                LineTo(surface, (int)mineVB[0].x, (int)mineVB[0].y);
-
+                g.setColor(Color.GREEN);
+                g.drawRect(
+                        (int) (m_vecMines.get(i).x - CParams.dMineScale),
+                        (int) (m_vecMines.get(i).y - CParams.dMineScale),
+                        (int) (CParams.dMineScale * 2),
+                        (int) (CParams.dMineScale * 2)
+                );
             }
 
-            //we want the fittest displayed in red
-            SelectObject(surface, m_RedPen);
-
             //render the sweepers
-            for (i=0; i<m_NumSweepers; i++)
+            for (int i=0; i<m_NumSweepers; i++)
             {
                 if (i == CParams.iNumElite)
                 {
-                    SelectObject(surface, m_OldPen);
+                    g.setColor(Color.RED);
                 }
-
-                //grab the sweeper vertices
-                vector<SPoint> sweeperVB = m_SweeperVB;
-
-                //transform the vertex buffer
-                m_vecSweepers.get(i).WorldTransform(sweeperVB);
-
-                //draw the sweeper left track
-                MoveToEx(surface, (int)sweeperVB[0].x, (int)sweeperVB[0].y, NULL);
-
-                for (int vert=1; vert<4; ++vert)
+                else
                 {
-                    LineTo(surface, (int)sweeperVB[vert].x, (int)sweeperVB[vert].y);
+                    g.setColor(Color.BLACK);
                 }
 
-                LineTo(surface, (int)sweeperVB[0].x, (int)sweeperVB[0].y);
+                CMinesweeper s = m_vecSweepers.get(i);
 
-                //draw the sweeper right track
-                MoveToEx(surface, (int)sweeperVB[4].x, (int)sweeperVB[4].y, NULL);
+                AffineTransform oldTransform = g.getTransform();
+                g.rotate(s.Rotation(), s.Position().x, s.Position().y);
 
-                for (vert=5; vert<8; ++vert)
-                {
-                    LineTo(surface, (int)sweeperVB[vert].x, (int)sweeperVB[vert].y);
-                }
+                // Body
+                g.drawRect(
+                        (int) (s.Position().x - CParams.iSweeperScale),
+                        (int) (s.Position().y - CParams.iSweeperScale),
+                        CParams.iSweeperScale * 2,
+                        CParams.iSweeperScale * 2
+                );
+                // Left Track
+                int trackWidth = CParams.iSweeperScale / 2;
+                g.drawRect(
+                        (int) (s.Position().x - CParams.iSweeperScale),
+                        (int) (s.Position().y - CParams.iSweeperScale),
+                        trackWidth,
+                        CParams.iSweeperScale * 2
+                );
+                // Right Track
+                g.drawRect(
+                        (int) (s.Position().x + CParams.iSweeperScale - trackWidth),
+                        (int) (s.Position().y - CParams.iSweeperScale),
+                        trackWidth,
+                        CParams.iSweeperScale * 2
+                );
 
-                LineTo(surface, (int)sweeperVB[4].x, (int)sweeperVB[4].y);
+                // Nose
+                int NOSE_SIZE = CParams.iSweeperScale;
+                g.drawLine(
+                        (int) (s.Position().x - CParams.iSweeperScale),
+                        (int) (s.Position().y + CParams.iSweeperScale),
+                        (int) s.Position().x,
+                        (int) (s.Position().y + CParams.iSweeperScale + NOSE_SIZE)
+                );
+                g.drawLine(
+                        (int) s.Position().x,
+                        (int) (s.Position().y + CParams.iSweeperScale + NOSE_SIZE),
+                        (int) (s.Position().x + CParams.iSweeperScale),
+                        (int) (s.Position().y + CParams.iSweeperScale)
+                );
 
-                MoveToEx(surface, (int)sweeperVB[8].x, (int)sweeperVB[8].y, NULL);
-                LineTo(surface, (int)sweeperVB[9].x, (int)sweeperVB[9].y);
-
-                MoveToEx(surface, (int)sweeperVB[10].x, (int)sweeperVB[10].y, NULL);
-
-                for (vert=11; vert<16; ++vert)
-                {
-                    LineTo(surface, (int)sweeperVB[vert].x, (int)sweeperVB[vert].y);
-                }
-
+                g.setTransform(oldTransform);
             }
-
-            //put the old pen back
-            SelectObject(surface, m_OldPen);
 
         }//end if
 
         else
         {
-            PlotStats(surface);
+            PlotStats(g);
         }
-    }*/
+    }
     
     //  Given a surface to draw on this function displays stats and a crude
     //  graph showing best and average fitness
-    /*void CController::PlotStats(HDC surface)
+    private void PlotStats(Graphics2D g)
     {
-        string s = "Best Fitness:       " + ftos(m_pGA->BestFitness());
-        TextOut(surface, 5, 20, s.c_str(), s.size());
+        g.setColor(Color.BLACK);
+        g.drawString("Best Fitness:    " + m_pGA.BestFitness(), 5, 30);
+        g.drawString("Average Fitness: " + m_pGA.AverageFitness(), 5, 45);
 
-        s = "Average Fitness: " + ftos(m_pGA->AverageFitness());
-        TextOut(surface, 5, 40, s.c_str(), s.size());
+        plotGraph(g, Color.RED, m_vecBestFitness);
+        plotGraph(g, Color.BLUE, m_vecAvFitness);
+    }
 
+    private void plotGraph(Graphics2D g, Color color, Vector<Double> values)
+    {
         //render the graph
-        float HSlice = (float)cxClient/(m_iGenerations+1);
-        float VSlice = (float)cyClient/((m_pGA->BestFitness()+1)*2);
+        double HSlice = (float)cxClient/(m_iGenerations+1);
+        double VSlice = (float)cyClient/((m_pGA.BestFitness()+1)*2);
 
         //plot the graph for the best fitness
-        float x = 0;
+        double x = 0;
 
-        m_OldPen = (HPEN)SelectObject(surface, m_RedPen);
+        g.setColor(color);
 
-        MoveToEx(surface, 0, cyClient, NULL);
-
-        for (int i=0; i<m_vecBestFitness.size(); ++i)
+        for (int i=1; i<values.size(); ++i)
         {
-            LineTo(surface, x, cyClient - VSlice*m_vecBestFitness.get(i));
+            g.drawLine(
+                    (int) x,
+                    (int) (cyClient - VSlice * values.get(i - 1)),
+                    (int) (x + HSlice),
+                    (int) (cyClient - VSlice * values.get(i))
+            );
 
             x += HSlice;
         }
-
-        //plot the graph for the average fitness
-        x = 0;
-
-        SelectObject(surface, m_BluePen);
-
-        MoveToEx(surface, 0, cyClient, NULL);
-
-        for (i=0; i<m_vecAvFitness.size(); ++i)
-        {
-            LineTo(surface, (int)x, (int)(cyClient - VSlice*m_vecAvFitness.get(i)));
-
-            x += HSlice;
-        }
-
-        //replace the old pen
-        SelectObject(surface, m_OldPen);
-    }*/
+    }
 }

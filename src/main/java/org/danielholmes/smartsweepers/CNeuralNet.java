@@ -143,7 +143,7 @@ public class CNeuralNet {
         {
             if ( i > 0 )
             {
-                inputs = outputs;
+                inputs = (Vector<Double>) outputs.clone();
             }
 
             outputs.clear();
